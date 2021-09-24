@@ -48,7 +48,7 @@ app.use(bodyParser.json());
  *          200:
  *              description: Object food containing array of food object with prices
 */
-app.get('/prices',(req,resp) =>{
+app.get('/agents',(req,resp) =>{
     pool.query('SELECT * from sample.agents')
         .then(res => {
                 resp.statusCode = 200;
@@ -116,12 +116,26 @@ app.get('/prices',(req,resp) =>{
  *         example: India
 */
 app.put('/agents',(req,resp) =>{
-    pool.query(`update sample.agents set agent_name = '${req['body'].agentName}' where working_area = '${req['body'].workingArea}'`).then(res => {
-                resp.statusCode = 200;
-                resp.setHeader('Content-Type','Application/json');
-                resp.send(res);
-               })
-        .catch(err => console.error('Error exccuting query', err.stack));
+    pool.query(`update sample.agents set agent_name = '${req['body'].agentName}',  working_area = '${req['body'].workingArea}', commission  = '${req['body'].commission}', phone_no = '${req['body'].phoneNo}', country = '${req['body'].country}' where agent_code = '${req['body'].agentCode}'`).then(res => {
+                console.log(res.affectedRows);
+                if(res.affectedRows > 0)
+                {
+                        resp.statusCode = 200;
+                        resp.setHeader('Content-Type','Application/json');
+                        resp.send(res);
+                }
+                else{
+                        resp.statusCode = 201;
+                        resp.setHeader('Content-Type','text/plain');
+                        resp.send("The agent is not located in the table - Operation  unsuccessful");
+                }
+              })
+        .catch(err =>{
+                resp.statusCode = 404;
+                console.error('Error exccuting query', err.stack);
+                resp.setHeader('Content-Type','text/plain');
+                resp.send('Error executing query' + err.stack);
+        });
 });
 
 
@@ -184,45 +198,173 @@ app.put('/agents',(req,resp) =>{
 app.post('/agents',(req,resp) =>{
     console.log(req['body']);
     pool.query(`insert into sample.agents values ('${req['body'].agentCode}', '${req['body'].agentName}', '${req['body'].workingArea}', '${req['body'].commission}', '${req['body'].phone_no}', '${req['body'].country}')`).then(res => {
-                resp.statusCode = 200;
-                resp.setHeader('Content-Type','Application/json');
-                resp.send(res);
+               if(res.affectedRows > 0)
+                {
+                        resp.statusCode = 200;
+                        resp.setHeader('Content-Type','text/plain');
+                        resp.send('Successfully Inserted the record');
+                }
+                else{
+                        resp.statusCode = 201;
+                        resp.setHeader('Content-Type','text/plain');
+                        resp.send("The record is not inserted into the table - Operation  unsuccessful");
+                }
+              })
+        .catch(err =>{
+                resp.statusCode = 404;
+                console.error('Error exccuting query', err.stack);
+                resp.setHeader('Content-Type','text/plain');
+                resp.send('Error executing query' + err.stack);
                })
-        .catch(err => console.error('Error exccuting query', err.stack));
 });
 
 /**
  * @swagger
- * /prices:
+ * /agents:
  *  delete:
- *    description: Removes product
- *    consumes: 
+ *    description: Updates agents
+ *    consumes:
  *    - application/json
  *    produces:
  *    - application/json
  *    parameters:
  *    - in: body
- *      name: name
+ *      name: agentCode
  *      required: true
  *      schema:
  *        type: string
- *        $ref: "#/definitions/price"
- *    responses: 
+ *        $ref: "#/definitions/agentDelete"
+ *    requestBody:
+ *      request: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            $ref: "#definitions/agentDelete"
+ *    responses:
  *      200:
  *       description: A successfull response
  * definitions:
- *   price:
+ *   agentDelete:
  *     type: object
  *     required:
- *     - name
+ *     - agentCode
  *     properties:
- *       name:
+ *       agentCode:
  *         type: string
- *         example: Mango
+ *         example: A008
 */
-app.delete('/prices',(req,res) =>{
+app.delete('/agents',(req,resp) =>{
     console.log(req['body']);
-    res.status(200).send("Succesfully sent");
+//    res.status(200).send("Succesfully sent");
+pool.query(`Delete from sample.agents where agent_code = '${req['body'].agentCode}'`).then(res => {
+               if(res.affectedRows > 0)
+                {
+                        resp.statusCode = 200;
+                        resp.setHeader('Content-Type','text/plain');
+                        resp.send('Successfully Deleted the record');
+                }
+                else{
+                        resp.statusCode = 201;
+                        resp.setHeader('Content-Type','text/plain');
+                        resp.send("The record is not found in the table - Operation  unsuccessful");
+                }
+              })
+        .catch(err =>{
+                resp.statusCode = 404;
+                console.error('Error exccuting query', err.stack);
+                resp.setHeader('Content-Type','text/plain');
+                resp.send('Error executing query' + err.stack);
+});
+});
+
+/**
+ * @swagger
+ * /agents:
+ *  patch:
+ *    description: Updates or inserts agents
+ *    consumes:
+ *    - application/json
+ *    produces:
+ *    - application/json
+ *    parameters:
+ *    - in: body
+ *      name: agentCode
+ *      required: true
+ *      schema:
+ *        type: string
+ *        $ref: "#/definitions/agentPatch"
+ *    requestBody:
+ *      request: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            $ref: "#definitions/agentPatch"
+ *    responses:
+ *      200:
+ *       description: A successfull response
+ * definitions:
+ *   agentPatch:
+ *     type: object
+ *     required:
+ *     - agentCode
+ *     properties:
+ *       agentCode:
+ *         type: string
+ *         example: A008
+ *       agentName:
+ *         type: string
+ *         example: Wilson
+ *       workingArea:
+ *         type: string
+ *         example: Banglore
+ *       commission:
+ *         type: number
+ *         example: 0.15
+ *       phoneNo:
+ *         type: string
+ *         example: 1234567890
+ *       country:
+ *         type: string
+ *         example: India
+*/
+app.patch('/agents',(req,resp) =>{
+   
+pool.query(`update sample.agents set agent_name = '${req['body'].agentName}',  working_area = '${req['body'].workingArea}', commission  = '${req['body'].commission}', phone_no = '${req['body'].phoneNo}', country = '${req['body'].country}' where agent_code = '${req['body'].agentCode}'`).then(res => {
+               if(res.affectedRows > 0)
+                {
+                        resp.statusCode = 200;
+                        resp.setHeader('Content-Type','text/plain');
+                        resp.send('Successfully updated the record');
+                }
+                else{
+               pool.query(`insert into sample.agents values ('${req['body'].agentCode}', '${req['body'].agentName}', '${req['body'].workingArea}', '${req['body'].commission}', '${req['body'].phone_no}', '${req['body'].country}')`).then(res => {
+               if(res.affectedRows > 0)
+                {
+                        resp.statusCode = 200;
+                        resp.setHeader('Content-Type','text/plain');
+                        resp.send('Successfull patched the record');
+                }
+                else{
+                        resp.statusCode = 201;
+                        resp.setHeader('Content-Type','text/plain');
+                        resp.send("The record is not inserted or updated into the table - Operation  unsuccessful");
+                }
+              })
+        .catch(err =>{
+                resp.statusCode = 404;
+                console.error('Error exccuting query', err.stack);
+                resp.setHeader('Content-Type','text/plain');
+                resp.send('Error executing query' + err.stack);
+               })
+ }
+              })
+        .catch(err =>{
+                resp.statusCode = 404;
+                console.error('Error exccuting query', err.stack);
+                resp.setHeader('Content-Type','text/plain');
+                resp.send('Error executing query' + err.stack);
+               })
+        .catch(err => console.error('Error exccuting query', err.stack));
 });
 
 app.listen(port, ()=>{
